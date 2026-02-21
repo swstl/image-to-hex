@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image → Keyboard Hex</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #16161a;
+      --border: #2a2a30;
+      --accent: #f97316;
+      --accent2: #fb923c;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --green: #4ade80;
+      --pixel-on: #f97316;
+      --pixel-off: #1e1e24;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    header h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #fbbf24 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+
+    .main {
+      width: 100%;
+      max-width: 900px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 680px) {
+      .main { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* Drop zone */
+    #dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 32px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    #dropzone:hover, #dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(249, 115, 22, 0.05);
+    }
+
+    #dropzone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    #dropzone .icon {
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    #dropzone .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    #dropzone .label span {
+      color: var(--accent);
+    }
+
+    /* Controls */
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .control-row label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    input[type=range] {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .val-badge {
+      font-size: 0.7rem;
+      color: var(--accent);
+      min-width: 32px;
+      text-align: right;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .toggle {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .toggle button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 4px 10px;
+      font-family: inherit;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .toggle button.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+    }
+
+    /* Preview panel */
+    .preview-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .previews {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .preview-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .preview-label {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    canvas {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      image-rendering: pixelated;
+    }
+
+    #canvas-source { display: none; }
+
+    /* Pixel grid preview */
+    #pixel-grid {
+      display: grid;
+      grid-template-columns: repeat(32, 1fr);
+      gap: 1px;
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      width: 128px;
+      height: 128px;
+      flex-shrink: 0;
+    }
+
+    .px {
+      background: var(--pixel-off);
+    }
+    .px.on {
+      background: var(--pixel-on);
+    }
+
+    /* Output */
+    .output-area {
+      grid-column: 1 / -1;
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .copy-btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover { background: var(--accent2); }
+    .copy-btn:active { transform: scale(0.97); }
+    .copy-btn.copied { background: var(--green); color: #000; }
+
+    #output {
+      background: #0a0a0c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.72rem;
+      line-height: 1.8;
+      color: #a0a0b8;
+      white-space: pre;
+      overflow-x: auto;
+      min-height: 120px;
+      user-select: all;
+    }
+
+    #output .kw { color: var(--accent); }
+    #output .fn { color: #7dd3fc; }
+    #output .hex { color: #e8e8f0; }
+    #output .dim { color: #444458; }
+
+    .status {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 8px;
+      min-height: 1.2em;
+    }
+
+    .status.ok { color: var(--green); }
+    .status.err { color: #f87171; }
+
+    .placeholder-text {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-align: center;
+      padding: 24px 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>IMG → HEX</h1>
+  <p>KEYBOARD DISPLAY ICON CONVERTER &nbsp;·&nbsp; 32×32 LSB BITMAP</p>
+</header>
+
+<div class="main">
+
+  <!-- Input card -->
+  <div class="card">
+    <div class="card-title">Upload Image</div>
+    <div id="dropzone">
+      <input type="file" id="file-input" accept="image/*">
+      <div class="icon">⌗</div>
+      <div class="label"><span>Click to upload</span> or drag & drop</div>
+      <div class="label">PNG, JPG, SVG, WebP…</div>
+    </div>
+
+    <div class="controls">
+      <div class="control-row">
+        <label>Threshold</label>
+        <input type="range" id="threshold" min="1" max="254" value="128">
+        <span class="val-badge" id="threshold-val">128</span>
+      </div>
+
+      <div class="toggle-row">
+        <label>Pixels</label>
+        <div class="toggle">
+          <button id="btn-dark" class="active" onclick="setMode('dark')">Dark on Light</button>
+          <button id="btn-light" onclick="setMode('light')">Light on Dark</button>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <label>Output</label>
+        <div class="toggle">
+          <button id="btn-full" class="active" onclick="setOutput('full')">Full func</button>
+          <button id="btn-const" onclick="setOutput('const')">Const only</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <label>Icon name</label>
+        <input type="text" id="icon-name" placeholder="e.g. Blender" value="MyIcon"
+          style="flex:1;background:#0a0a0c;border:1px solid var(--border);border-radius:6px;
+                 padding:4px 8px;color:var(--text);font-family:inherit;font-size:0.72rem;
+                 outline:none;min-width:0;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview card -->
+  <div class="card">
+    <div class="card-title">Preview</div>
+    <div class="preview-wrap">
+      <div class="previews" id="previews">
+        <div class="placeholder-text">Upload an image to preview</div>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <!-- Output card -->
+  <div class="card output-area">
+    <div class="output-header">
+      <div class="card-title" style="margin:0">Generated Code</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyOutput()">Copy</button>
+    </div>
+    <div id="output"><span style="color:#444458">// Upload an image to generate hex output</span></div>
+  </div>
+
+</div>
+
+<canvas id="canvas-source"></canvas>
+<canvas id="canvas-scaled" width="32" height="32" style="display:none"></canvas>
+
+<script>
+  let pixelData = null;
+  let threshold = 128;
+  let invertMode = false; // false = dark pixels = ON
+  let outputMode = 'full'; // 'full' or 'const'
+
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file-input');
+  const thresholdSlider = document.getElementById('threshold');
+  const thresholdVal = document.getElementById('threshold-val');
+  const canvasSrc = document.getElementById('canvas-source');
+  const canvasScaled = document.getElementById('canvas-scaled');
+  const ctxSrc = canvasSrc.getContext('2d', { willReadFrequently: true });
+  const ctxScaled = canvasScaled.getContext('2d', { willReadFrequently: true });
+
+  // Drag and drop
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const raw = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+      const titled = raw.replace(/\b\w/g, c => c.toUpperCase());
+      document.getElementById('icon-name').value = titled;
+      loadFile(file);
+    }
+  });
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) {
+      // Auto-set name from filename, strip extension, Title Case it
+      const raw = e.target.files[0].name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+      const titled = raw.replace(/\b\w/g, c => c.toUpperCase());
+      document.getElementById('icon-name').value = titled;
+      loadFile(e.target.files[0]);
+    }
+  });
+
+  document.getElementById('icon-name').addEventListener('input', () => {
+    if (pixelData) processImage();
+  });
+
+  thresholdSlider.addEventListener('input', () => {
+    threshold = parseInt(thresholdSlider.value);
+    thresholdVal.textContent = threshold;
+    if (pixelData) processImage();
+  });
+
+  function setMode(m) {
+    invertMode = (m === 'light');
+    document.getElementById('btn-dark').classList.toggle('active', !invertMode);
+    document.getElementById('btn-light').classList.toggle('active', invertMode);
+    if (pixelData) processImage();
+  }
+
+  function setOutput(m) {
+    outputMode = m;
+    document.getElementById('btn-full').classList.toggle('active', m === 'full');
+    document.getElementById('btn-const').classList.toggle('active', m === 'const');
+    if (pixelData) processImage();
+  }
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        // Draw original to source canvas
+        canvasSrc.width = img.width;
+        canvasSrc.height = img.height;
+        ctxSrc.drawImage(img, 0, 0);
+
+        // Scale to 32x32
+        ctxScaled.clearRect(0, 0, 32, 32);
+        ctxScaled.drawImage(img, 0, 0, 32, 32);
+
+        pixelData = ctxScaled.getImageData(0, 0, 32, 32);
+        processImage();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function processImage() {
+    if (!pixelData) return;
+
+    const data = pixelData.data;
+    const bits = [];
+
+    for (let y = 0; y < 32; y++) {
+      for (let x = 0; x < 32; x++) {
+        const i = (y * 32 + x) * 4;
+        const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+        // Luminance, account for alpha
+        const lum = (a < 128) ? 255 : Math.round(0.299*r + 0.587*g + 0.114*b);
+        let on = lum < threshold; // dark pixel = on by default
+        if (invertMode) on = !on;
+        bits.push(on ? 1 : 0);
+      }
+    }
+
+    // Generate bytes (LSB first per row)
+    const bytes = [];
+    for (let y = 0; y < 32; y++) {
+      let row = 0;
+      for (let x = 0; x < 32; x++) {
+        if (bits[y * 32 + x]) row |= (1 << x);
+      }
+      for (let b = 0; b < 4; b++) {
+        bytes.push((row >> (b * 8)) & 0xff);
+      }
+    }
+
+    updatePixelPreview(bits);
+    updateOutput(bytes);
+    setStatus('✓ ' + bytes.length + ' bytes · 32×32 px', 'ok');
+  }
+
+  function updatePixelPreview(bits) {
+    const previews = document.getElementById('previews');
+
+    // Build pixel grid
+    let gridHTML = '<div id="pixel-grid">';
+    for (let i = 0; i < 1024; i++) {
+      gridHTML += `<div class="px${bits[i] ? ' on' : ''}"></div>`;
+    }
+    gridHTML += '</div>';
+
+    // Scaled canvas preview as img
+    const dataUrl = canvasScaled.toDataURL();
+
+    previews.innerHTML = `
+      <div class="preview-box">
+        <div class="preview-label">Source (scaled)</div>
+        <img src="${dataUrl}" width="128" height="128" style="image-rendering:pixelated;border:1px solid #2a2a30;border-radius:4px;">
+      </div>
+      <div class="preview-box">
+        <div class="preview-label">1-bit preview</div>
+        ${gridHTML}
+      </div>
+    `;
+  }
+
+  function updateOutput(bytes) {
+    const hexVals = bytes.map(b => b.toString(16).padStart(2, '0'));
+    const lines = [];
+    for (let i = 0; i < hexVals.length; i += 8) {
+      lines.push('    ' + hexVals.slice(i, i + 8).join(' '));
+    }
+    const hexBlock = '    20 20\n' + lines.join('\n');
+
+    // Derive identifiers from the icon name input
+    const rawName = document.getElementById('icon-name').value.trim() || 'MyIcon';
+    // SCREAMING_SNAKE for const: "Blender Icon" -> "BLENDER_ICON"
+    const constName = rawName.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '') + '_IMAGE';
+    // camelCase for func: "Blender Icon" -> "drawDisplayBlenderIcon"
+    const funcSuffix = rawName.replace(/\s+/g, ' ').split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
+    const funcName = 'drawDisplay' + funcSuffix;
+
+    let code;
+    if (outputMode === 'const') {
+      code = `  const ${constName} = [[\n${hexBlock}\n  ]];`;
+    } else {
+      code = `#option(drawDisplay, "Display", "${rawName} Icon", ${funcName})\nfunc ${funcName}() {\n  const ${constName} = [[\n${hexBlock}\n  ]];\n\n  drawDisplay0(${constName});\n  setAutoDraw(1, AUTO_DRAW_WPM);\n}`;
+    }
+
+    document.getElementById('output').textContent = code;
+  }
+
+  function copyOutput() {
+    const text = document.getElementById('output').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 1800);
+    });
+  }
+
+  function setStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status ' + (type || '');
+  }
+</script>
+</body>
+</html>
