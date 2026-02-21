@@ -234,9 +234,9 @@
     /* Pixel grid preview */
     #pixel-grid {
       display: grid;
-      grid-template-columns: repeat(32, 1fr);
-      gap: 1px;
-      background: #000;
+      grid-template-columns: repeat(32, 4px);
+      grid-template-rows: repeat(32, 4px);
+      gap: 0;
       border: 1px solid var(--border);
       border-radius: 4px;
       overflow: hidden;
@@ -330,7 +330,7 @@
 
   <!-- Input card -->
   <div class="card">
-    <div class="card-title">Upload Image</div>
+    <div class="card-title">01 — Upload Image</div>
     <div id="dropzone">
       <input type="file" id="file-input" accept="image/*">
       <div class="icon">⌗</div>
@@ -373,7 +373,7 @@
 
   <!-- Preview card -->
   <div class="card">
-    <div class="card-title">Preview</div>
+    <div class="card-title">02 — Preview</div>
     <div class="preview-wrap">
       <div class="previews" id="previews">
         <div class="placeholder-text">Upload an image to preview</div>
@@ -385,7 +385,7 @@
   <!-- Output card -->
   <div class="card output-area">
     <div class="output-header">
-      <div class="card-title" style="margin:0">Generated Code</div>
+      <div class="card-title" style="margin:0">03 — Generated Code</div>
       <button class="copy-btn" id="copy-btn" onclick="copyOutput()">Copy</button>
     </div>
     <div id="output"><span style="color:#444458">// Upload an image to generate hex output</span></div>
@@ -470,7 +470,9 @@
         canvasSrc.height = img.height;
         ctxSrc.drawImage(img, 0, 0);
 
-        // Scale to 32x32
+        // Scale to 32x32 — reset canvas dimensions to force a clean state
+        canvasScaled.width = 32;
+        canvasScaled.height = 32;
         ctxScaled.clearRect(0, 0, 32, 32);
         ctxScaled.drawImage(img, 0, 0, 32, 32);
 
